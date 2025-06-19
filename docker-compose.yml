@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14
+    container_name: crack_postgres
+    environment:
+      POSTGRES_USER: crackuser
+      POSTGRES_PASSWORD: crackpass
+      POSTGRES_DB: crackdb
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+
+  airflow:
+    build: ./airflow
+    container_name: crack_airflow
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://crackuser:crackpass@postgres/crackdb
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+    ports:
+      - "8080:8080"
+
+  crawler:
+    build: ./crawler
+    container_name: crack_crawler
+    depends_on:
+      - postgres
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=crackdb
+      - DB_USER=crackuser
+      - DB_PASSWORD=crackpass
